@@ -50,3 +50,5 @@ bld/
 [Oo]bj/
 [Ll]og/
 .vs/
+*.vcxproj*
+*.sln

@@ -4,9 +4,14 @@
 #include <vector>
 #include <iostream>
 #include <cassert>
+#include <set>
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_LUNARG_standard_validation"
+};
+
+const std::vector<const char*> deviceExtensions = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
 #ifdef NDEBUG
@@ -22,6 +27,12 @@ struct QueueFamilyIndices {
 	bool isComplete() {
 		return graphicsFamily >= 0 && presentFamily >= 0;
 	}
+};
+
+struct SwapChainSupportDetails {
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
 };
 
 void vkCheckResult(VkResult result, const char *apiCall);
@@ -48,5 +59,7 @@ void DestroyDebugReportCallbackEXT(VkInstance instance,
 	const VkAllocationCallbacks* pAllocator);
 
 bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
+bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 int	rateDeviceSuitability(VkPhysicalDevice device, VkSurfaceKHR surface);
 QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
