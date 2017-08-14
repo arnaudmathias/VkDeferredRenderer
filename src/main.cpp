@@ -10,6 +10,13 @@
 #include <functional>
 #include "VkBackend.h"
 
+static void onWindowResized(GLFWwindow* window, int width, int height) {
+	if (width == 0 || height == 0) return;
+
+	VkBackend* backend = reinterpret_cast<VkBackend*>(glfwGetWindowUserPointer(window));
+	backend->OnResize();
+}
+
 int main() {
 	glfwInit();
 
@@ -19,8 +26,12 @@ int main() {
 	VkBackend vulkanBackend(window);
 	vulkanBackend.init();
 
+	glfwSetWindowUserPointer(window, &vulkanBackend);
+	glfwSetWindowSizeCallback(window, onWindowResized);
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+		vulkanBackend.update();
+		vulkanBackend.drawFrame();
 	}
 
 	glfwDestroyWindow(window);
