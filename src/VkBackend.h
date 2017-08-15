@@ -1,5 +1,6 @@
 #pragma once
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -59,6 +60,10 @@ private:
 	VkImageView	_textureImageView;
 	VkSampler	_textureSampler;
 
+	VkImage	_depthImage;
+	VkDeviceMemory	_depthImageMemory;
+	VkImageView	_depthImageView;
+
 	void	createInstance();
 	void	setupDebugCallback();
 	void	createSurface();
@@ -71,11 +76,12 @@ private:
 	void	createGraphicsPipeline();
 	void	createFramebuffers();
 	void	createCommandPool();
+	void	createDepthResources();
 	void	createTextureImage();
 	void	createTextureImageView();
 	void	createTextureSampler();
 
-	VkImageView	createImageView(VkImage image, VkFormat format);
+	VkImageView	createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	void	createImage(uint32_t width, uint32_t height, VkFormat format,
 				VkImageTiling tiling, VkImageUsageFlags usage,
 				VkMemoryPropertyFlags properties, VkImage& image,
@@ -100,5 +106,3 @@ private:
 	void	recreateSwapChain();
 	void	cleanupSwapChain();
 };
-
-
