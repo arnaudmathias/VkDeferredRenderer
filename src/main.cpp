@@ -8,7 +8,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <functional>
-#include "VkBackend.h"
+#include "model.h"
+#include "vk_backend.h"
 
 static void onWindowResized(GLFWwindow* window, int width, int height) {
 	if (width == 0 || height == 0) return;
@@ -23,9 +24,11 @@ int main() {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	GLFWwindow* window = glfwCreateWindow(1280, 720, "Vulkan Deferred renderer", nullptr, nullptr);
 
+	Model model;
+	model.load("models/sponza/sponza.obj");
+	//model.load("models/chalet.obj");
 	VkBackend vulkanBackend(window);
-	vulkanBackend.init();
-
+	vulkanBackend.init(model);
 	glfwSetWindowUserPointer(window, &vulkanBackend);
 	glfwSetWindowSizeCallback(window, onWindowResized);
 	while (!glfwWindowShouldClose(window)) {
@@ -38,6 +41,5 @@ int main() {
 
 	glfwTerminate();
 	vulkanBackend.cleanup();
-
 	return 0;
 }

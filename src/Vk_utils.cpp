@@ -1,4 +1,4 @@
-#include "Vk_utils.h"
+#include "vk_utils.h"
 
 const char* to_string(VkResult result) {
 	switch (result) {

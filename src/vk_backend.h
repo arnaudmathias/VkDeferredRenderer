@@ -1,14 +1,70 @@
 #pragma once
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <chrono>
 #include <vector>
 #include <map>
 #include <set>
 #include "Vk_utils.h"
+#include "renderer.h"
+#include "model.h"
+
+struct VkVertex {
+	glm::vec3	pos;
+	glm::vec3	color;
+	glm::vec2	texCoord;
+	static VkVertexInputBindingDescription getBindingDescription() {
+		VkVertexInputBindingDescription bindingDescription = {};
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(VkVertex);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		return bindingDescription;
+	}
+
+	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(VkVertex, pos);
+
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(VkVertex, color);
+
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(VkVertex, texCoord);
+
+		return attributeDescriptions;
+	}
+};
+
+
+struct Texture { 
+	VkImage				image;
+	VkDeviceMemory		imageMemory;
+	VkImageView			imageView;
+	VkSampler			sampler;
+
+	Texture() {};
+	Texture(VkDevice device) : _device(device){ }
+private:
+	VkDevice _device;
+};
+
+struct DepthStencil { 
+	VkImage				image;
+	VkDeviceMemory		imageMemory;
+	VkImageView			imageView;
+
+	DepthStencil() {};
+	DepthStencil(VkDevice device) : _device(device){ }
+
+private:
+	VkDevice _device;
+};
+
 
 class VkBackend
 {
@@ -16,11 +72,12 @@ public:
 	VkBackend(GLFWwindow *window);
 	~VkBackend();
 
-	bool	init();
+	bool	init(Model model);
 	void	drawFrame();
 	void	update();
 	void	cleanup();
 	void	OnResize();
+	void	loadModel(); //TODO: higher level abstraction
 
 private:
 
@@ -46,6 +103,7 @@ private:
 	std::vector<VkCommandBuffer>	_commandBuffers;
 	VkSemaphore	_imageAvailableSemaphore;
 	VkSemaphore	_renderFinishedSemaphore;
+
 	VkBuffer	_vertexBuffer;
 	VkDeviceMemory	_vertexBufferMemory;
 	VkBuffer	_indexBuffer;
@@ -55,14 +113,10 @@ private:
 	VkDescriptorPool	_descriptorPool;
 	VkDescriptorSet	_descriptorSet;
 
-	VkImage	_textureImage;
-	VkDeviceMemory	_textureImageMemory;
-	VkImageView	_textureImageView;
-	VkSampler	_textureSampler;
+	Texture		_texture;
+	DepthStencil	_depth;
 
-	VkImage	_depthImage;
-	VkDeviceMemory	_depthImageMemory;
-	VkImageView	_depthImageView;
+	Model _model;
 
 	void	createInstance();
 	void	setupDebugCallback();
@@ -80,7 +134,6 @@ private:
 	void	createTextureImage();
 	void	createTextureImageView();
 	void	createTextureSampler();
-
 	VkImageView	createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	void	createImage(uint32_t width, uint32_t height, VkFormat format,
 				VkImageTiling tiling, VkImageUsageFlags usage,
@@ -105,4 +158,5 @@ private:
 	void	createSemaphores();
 	void	recreateSwapChain();
 	void	cleanupSwapChain();
+
 };

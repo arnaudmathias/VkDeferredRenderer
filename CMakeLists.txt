@@ -10,11 +10,11 @@ MESSAGE( STATUS "Vulkan_INCLUDE_DIRS:         " ${Vulkan_INCLUDE_DIRS} )
 MESSAGE( STATUS "Vulkan_LIBRARIES:         " ${Vulkan_LIBRARIES} )
 include_directories(${Vulkan_INCLUDE_DIRS})
 
-
 add_subdirectory(third-party/glfw)
 include_directories(third-party/glfw/include)
 include_directories(third-party/glm)
 include_directories(third-party/stb)
+include_directories(third-party/tinyobjloader)
 
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 

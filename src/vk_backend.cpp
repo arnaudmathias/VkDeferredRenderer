@@ -1,4 +1,4 @@
-#include "VkBackend.h"
+#include "vk_backend.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -12,7 +12,8 @@ VkBackend::~VkBackend() {
 }
 
 
-bool	VkBackend::init() {
+bool	VkBackend::init(Model model) {
+	_model = model;
 	createInstance();
 	setupDebugCallback();
 	createSurface();
@@ -38,7 +39,6 @@ bool	VkBackend::init() {
 	createSemaphores();
 	return true;
 }
-
 
 void	VkBackend::recreateSwapChain() {
 	vkDeviceWaitIdle(_device);
@@ -387,8 +387,8 @@ void	VkBackend::createGraphicsPipeline() {
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 	
-	auto bindingDescription = Vertex::getBindingDescription();
-	auto attributeDescriptions = Vertex::getAttributeDescriptions();
+	auto bindingDescription = VkVertex::getBindingDescription();
+	auto attributeDescriptions = VkVertex::getAttributeDescriptions();
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -527,7 +527,7 @@ void	VkBackend::createFramebuffers() {
 	for (size_t i = 0; i < _swapChainImageViews.size(); i++) {
 		std::array<VkImageView, 2> attachments = {
 			_swapChainImageViews[i],
-			_depthImageView
+			_depth.imageView
 		};
 
 		VkFramebufferCreateInfo framebufferInfo = {};
@@ -559,16 +559,18 @@ void	VkBackend::createDepthResources() {
 	VkFormat depthFormat = findDepthFormat(_physicalDevice);
 	createImage(_swapChainExtent.width, _swapChainExtent.height, depthFormat,
 		VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _depthImage, _depthImageMemory);
-	_depthImageView = createImageView(_depthImage, depthFormat,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _depth.image, _depth.imageMemory);
+	_depth.imageView = createImageView(_depth.image, depthFormat,
 		VK_IMAGE_ASPECT_DEPTH_BIT);
-	transitionImageLayout(_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
+	transitionImageLayout(_depth.image, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
 void	VkBackend::createTextureImage() {
 	int texWidth, texHeight, texChannels;
-	stbi_uc* pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	std::string filepath = "textures/chalet.jpg";
+	stbi_uc* pixels = stbi_load(filepath.c_str(),
+		&texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 	if (!pixels) {
@@ -588,12 +590,12 @@ void	VkBackend::createTextureImage() {
 	createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM,
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _textureImage, _textureImageMemory);
-	transitionImageLayout(_textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _texture.image, _texture.imageMemory);
+	transitionImageLayout(_texture.image, VK_FORMAT_R8G8B8A8_UNORM,
 		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	copyBufferToImage(stagingBuffer, _textureImage,
+	copyBufferToImage(stagingBuffer, _texture.image,
 		static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-	transitionImageLayout(_textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+	transitionImageLayout(_texture.image, VK_FORMAT_R8G8B8A8_UNORM,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	vkDestroyBuffer(_device, stagingBuffer, nullptr);
 	vkFreeMemory(_device, stagingBufferMemory, nullptr);
@@ -619,7 +621,7 @@ VkImageView VkBackend::createImageView(VkImage image, VkFormat format, VkImageAs
 }
 
 void	VkBackend::createTextureImageView() {
-	_textureImageView = createImageView(_textureImage, VK_FORMAT_R8G8B8A8_UNORM,
+	_texture.imageView = createImageView(_texture.image, VK_FORMAT_R8G8B8A8_UNORM,
 		VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
@@ -642,7 +644,7 @@ void	VkBackend::createTextureSampler() {
 	samplerInfo.minLod = 0.0f;
 	samplerInfo.maxLod = 0.0f;
 	
-	VkResult result = vkCreateSampler(_device, &samplerInfo, nullptr, &_textureSampler);
+	VkResult result = vkCreateSampler(_device, &samplerInfo, nullptr, &_texture.sampler);
 	vkCheckResult(result, "vkCreateSampler");
 }
 
@@ -683,7 +685,7 @@ void	VkBackend::createImage(uint32_t width, uint32_t height, VkFormat format,
 }
 
 void	VkBackend::createVertexBuffer() {
-	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+	VkDeviceSize bufferSize = sizeof(_model.meshes[0].vertices[0]) * _model.meshes[0].vertices.size();
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -692,7 +694,7 @@ void	VkBackend::createVertexBuffer() {
 
 	void* data;
 	vkMapMemory(_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, vertices.data(), (size_t)bufferSize);
+	memcpy(data, _model.meshes[0].vertices.data(), (size_t)bufferSize);
 	vkUnmapMemory(_device, stagingBufferMemory);
 
 	createBuffer(bufferSize,
@@ -704,7 +706,7 @@ void	VkBackend::createVertexBuffer() {
 }
 
 void	VkBackend::createIndexBuffer() {
-	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+	VkDeviceSize bufferSize = sizeof(_model.meshes[0].indices[0]) * _model.meshes[0].indices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -714,7 +716,7 @@ void	VkBackend::createIndexBuffer() {
 
 	void* data;
 	vkMapMemory(_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, indices.data(), (size_t)bufferSize);
+	memcpy(data, _model.meshes[0].indices.data(), (size_t)bufferSize);
 	vkUnmapMemory(_device, stagingBufferMemory);
 
 	createBuffer(bufferSize,
@@ -769,8 +771,8 @@ void	VkBackend::createDescriptorSet() {
 
 	VkDescriptorImageInfo imageInfo = {};
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfo.imageView = _textureImageView;
-	imageInfo.sampler = _textureSampler;
+	imageInfo.imageView = _texture.imageView;
+	imageInfo.sampler = _texture.sampler;
 
 	std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
 
@@ -973,8 +975,8 @@ void	VkBackend::createCommandBuffers() {
 		vkCmdBindDescriptorSets(_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
 			_pipelineLayout, 0, 1, &_descriptorSet, 0, nullptr);
 		vkCmdBindVertexBuffers(_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(_commandBuffers[i], _indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-		vkCmdDrawIndexed(_commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+		vkCmdBindIndexBuffer(_commandBuffers[i], _indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(_commandBuffers[i], static_cast<uint32_t>(_model.meshes[0].indices.size()), 1, 0, 0, 0);
 		vkCmdEndRenderPass(_commandBuffers[i]);
 		result = vkEndCommandBuffer(_commandBuffers[i]);
 		vkCheckResult(result, "vkEndCommandBuffer");
@@ -1013,11 +1015,14 @@ void	VkBackend::cleanupSwapChain() {
 void	VkBackend::cleanup() {
 	cleanupSwapChain();
 
-	
-	vkDestroySampler(_device, _textureSampler, nullptr);
-	vkDestroyImageView(_device, _textureImageView, nullptr);
-	vkDestroyImage(_device, _textureImage, nullptr);
-	vkFreeMemory(_device, _textureImageMemory, nullptr);
+	vkDestroyImageView(_device, _depth.imageView, nullptr);
+	vkDestroyImage(_device, _depth.image, nullptr);
+	vkFreeMemory(_device, _depth.imageMemory, nullptr);
+
+	vkDestroySampler(_device, _texture.sampler, nullptr);
+	vkDestroyImageView(_device, _texture.imageView, nullptr);
+	vkDestroyImage(_device, _texture.image, nullptr);
+	vkFreeMemory(_device, _texture.imageMemory, nullptr);
 
 	vkDestroyDescriptorPool(_device, _descriptorPool, nullptr);
 	vkDestroyDescriptorSetLayout(_device, _descriptorSetLayout, nullptr);
