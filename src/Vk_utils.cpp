@@ -161,11 +161,14 @@ bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface) {
 		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, surface);
 		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
+	VkPhysicalDeviceFeatures supportedFeatures;
+	vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 	return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
 		&& deviceFeatures.geometryShader
 		&& indices.isComplete()
 		&& extensionSupported
-		&& swapChainAdequate;
+		&& swapChainAdequate
+		&& supportedFeatures.samplerAnisotropy;
 }
 
 bool checkDeviceExtensionSupport(VkPhysicalDevice device) {

@@ -54,6 +54,11 @@ private:
 	VkDescriptorPool	_descriptorPool;
 	VkDescriptorSet	_descriptorSet;
 
+	VkImage	_textureImage;
+	VkDeviceMemory	_textureImageMemory;
+	VkImageView	_textureImageView;
+	VkSampler	_textureSampler;
+
 	void	createInstance();
 	void	setupDebugCallback();
 	void	createSurface();
@@ -66,6 +71,15 @@ private:
 	void	createGraphicsPipeline();
 	void	createFramebuffers();
 	void	createCommandPool();
+	void	createTextureImage();
+	void	createTextureImageView();
+	void	createTextureSampler();
+
+	VkImageView	createImageView(VkImage image, VkFormat format);
+	void	createImage(uint32_t width, uint32_t height, VkFormat format,
+				VkImageTiling tiling, VkImageUsageFlags usage,
+				VkMemoryPropertyFlags properties, VkImage& image,
+				VkDeviceMemory& imageMemory);
 	void	createVertexBuffer();
 	void	createIndexBuffer();
 	void	createUniformBuffer();
@@ -75,6 +89,12 @@ private:
 				VkMemoryPropertyFlags properties, VkBuffer &buffer,
 				VkDeviceMemory &bufferMemory);
 	void	copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+				VkCommandBuffer beginSingleTimeCommands();
+	void	endSingleTimeCommands(VkCommandBuffer commandBuffer);
+	void	transitionImageLayout(VkImage image, VkFormat format,
+				VkImageLayout oldLayout, VkImageLayout newLayout);
+	void	copyBufferToImage(VkBuffer buffer, VkImage image, 
+				uint32_t width, uint32_t height);
 	void	createCommandBuffers();
 	void	createSemaphores();
 	void	recreateSwapChain();
