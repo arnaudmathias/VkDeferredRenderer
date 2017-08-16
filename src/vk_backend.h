@@ -97,16 +97,16 @@ private:
 	VkSemaphore	_imageAvailableSemaphore;
 	VkSemaphore	_renderFinishedSemaphore;
 
-	std::vector<Buffer> vertexBuffers;
-	std::vector<Buffer> indexBuffers;
+	Buffer	_vertexBuffer;
+	Buffer	_indexBuffer;
 	
 	VkBuffer	_uniformBuffer;
 	VkDeviceMemory	_uniformBufferMemory;
 
 	VkDescriptorPool	_descriptorPool;
-	VkDescriptorSet	_descriptorSet;
+	std::vector<VkDescriptorSet> _descriptorSets;
 
-	Texture		_texture;
+	std::vector<Texture> _ambientTextures;
 	DepthStencil	_depth;
 
 	Model _model;
@@ -135,8 +135,8 @@ private:
 	Buffer	createVertexBuffer(std::vector<Vertex> vertices);
 	Buffer	createIndexBuffer(std::vector<uint32_t> indices);
 	void	createUniformBuffer();
-	void	createDescriptorPool();
-	void	createDescriptorSet();
+	void	createDescriptorPool(uint32_t poolSize);
+	VkDescriptorSet	createDescriptorSet(const Texture &texture);
 	void	createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
 				VkMemoryPropertyFlags properties, VkBuffer &buffer,
 				VkDeviceMemory &bufferMemory);

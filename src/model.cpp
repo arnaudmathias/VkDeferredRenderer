@@ -6,7 +6,9 @@ Mesh::Mesh() {
 	
 }
 
-Mesh::Mesh(std::string ambient_tex, std::string diffuse_tex, std::string specular_tex) :
+Mesh::Mesh(uint32_t count, int32_t offset, std::string ambient_tex, std::string diffuse_tex, std::string specular_tex) :
+	indexCount(count),
+	vertexOffset(offset),
 	ambient_texname(ambient_tex),
 	diffuse_texname(diffuse_tex),
 	specular_texname(specular_tex) {
@@ -30,7 +32,6 @@ static std::string GetBaseDir(const std::string &filepath) {
 	return "";
 }
 
-
 void Model::load(const std::string filename) {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -48,45 +49,69 @@ void Model::load(const std::string filename) {
 		materials.push_back(tinyobj::material_t());
 	}
 	for (const auto &material : materials) {
-		meshes.push_back(Mesh(basedir + material.ambient_texname,
+		std::cout << "mat: " << material.diffuse_texname << "\n";
+		meshes.push_back(Mesh(0, 0, basedir + material.ambient_texname,
 			basedir + material.diffuse_texname, basedir + material.specular_texname));
 	}
+
+	struct Face {
+		Vertex vertices[3];
+		int32_t material_id;
+	};
+
+	std::vector<Face> faceList;
 	for (const auto& shape : shapes) {
-		size_t face_id = 0;
-		for (const auto& index : shape.mesh.indices) {
-			
-			Vertex vertex = {};
-			vertex.pos = {
-				attrib.vertices[3 * index.vertex_index + 0],
-				attrib.vertices[3 * index.vertex_index + 1],
-				attrib.vertices[3 * index.vertex_index + 2]
-			};
-			if (index.normal_index != -1) {
-				vertex.normal = {
-					attrib.normals[3 * index.normal_index + 0],
-					attrib.normals[3 * index.normal_index + 1],
-					attrib.normals[3 * index.normal_index + 2]
-				};
-			} else {
-				vertex.normal = { 0.0f, 0.0f, 0.0f}; //TODO: calculate vertex normal
-			}
-			vertex.texCoord = {
-				attrib.texcoords[2 * index.texcoord_index + 0],
-				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-			};
+		for (size_t f = 0; f < shape.mesh.indices.size() / 3; f++) {
+			Face face;
+
 			int material_id;
-			//TODO: figure out why I need this
-			if (face_id < shape.mesh.material_ids.size())
-				material_id = shape.mesh.material_ids[face_id];
-			else
+			material_id = f < shape.mesh.material_ids.size() ? shape.mesh.material_ids[f] : 0;
+			if (material_id == -1)
 				material_id = 0;
-			if (material_id < 0 || material_id >= static_cast<int>(materials.size())) {
-				material_id = 0;
+			face.material_id = material_id;
+			for (size_t j = 0; j < 3; j++) {
+				int vertex_index = shape.mesh.indices[(f * 3) + j].vertex_index;
+				int normal_index = shape.mesh.indices[(f * 3) + j].normal_index;
+				int texcoord_index = shape.mesh.indices[(f * 3) + j].texcoord_index;
+
+				face.vertices[j].pos = {
+					attrib.vertices[3 * vertex_index + 0],
+					attrib.vertices[3 * vertex_index + 1],
+					attrib.vertices[3 * vertex_index + 2]
+				};
+				if (normal_index != -1) {
+					face.vertices[j].normal = {
+						attrib.normals[3 * normal_index + 0],
+						attrib.normals[3 * normal_index + 1],
+						attrib.normals[3 * normal_index + 2]
+					};
+				}
+				else {
+					face.vertices[j].normal = { 0.0f, 0.0f, 0.0f }; //TODO: calculate vertex normal
+				}
+				face.vertices[j].texCoord = {
+					attrib.texcoords[2 * texcoord_index + 0],
+					1.0f - attrib.texcoords[2 * texcoord_index + 1]
+				};
 			}
-			this->meshes[material_id].vertices.push_back(vertex);
-			this->meshes[material_id].indices.push_back(static_cast<int>(this->meshes[material_id].indices.size()));
-			face_id++;
+			faceList.push_back(face);
 		}
 	}
-	
+	//Sort vertices by material
+	for (size_t material_id = 0; material_id < materials.size(); material_id++) {
+		int vertexCount = 0;
+		meshes[material_id].vertexOffset = vertices.size();
+		for (const auto& face : faceList) {
+			if (face.material_id == material_id) {
+				vertices.push_back(face.vertices[0]);
+				vertices.push_back(face.vertices[1]);
+				vertices.push_back(face.vertices[2]);
+				indices.push_back(indices.size());
+				indices.push_back(indices.size());
+				indices.push_back(indices.size());
+				vertexCount += 3;
+			}
+		}
+		meshes[material_id].indexCount = vertexCount;
+	}
 }

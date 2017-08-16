@@ -26,7 +26,7 @@ int main() {
 
 	Model model;
 	model.load("models/sponza/sponza.obj");
-	//model.load("models/chalet.obj");
+	//model.load("models/sibenik/sibenik.obj");
 	VkBackend vulkanBackend(window);
 	vulkanBackend.init(model);
 	glfwSetWindowUserPointer(window, &vulkanBackend);
