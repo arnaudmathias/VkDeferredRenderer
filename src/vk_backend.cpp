@@ -27,11 +27,16 @@ bool	VkBackend::init(Model model) {
 	createCommandPool();
 	createDepthResources();
 	createFramebuffers();
-	createTextureImage();
-	createTextureImageView();
-	createTextureSampler();
-	createVertexBuffer();
-	createIndexBuffer();
+	Texture texture = createTextureImage(_model.meshes[0].ambient_texname);
+	createTextureImageView(texture);
+	createTextureSampler(texture);
+	_texture = texture;
+	for (auto &mesh : _model.meshes) {
+		Buffer vertexBuffer = createVertexBuffer(mesh.vertices);
+		Buffer indexBuffer = createIndexBuffer(mesh.indices);
+		vertexBuffers.push_back(vertexBuffer);
+		indexBuffers.push_back(indexBuffer);
+	}
 	createUniformBuffer();
 	createDescriptorPool();
 	createDescriptorSet();
@@ -566,9 +571,9 @@ void	VkBackend::createDepthResources() {
 		VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
-void	VkBackend::createTextureImage() {
+Texture	VkBackend::createTextureImage(const std::string filepath) {
+	Texture texture;
 	int texWidth, texHeight, texChannels;
-	std::string filepath = "textures/chalet.jpg";
 	stbi_uc* pixels = stbi_load(filepath.c_str(),
 		&texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -590,15 +595,16 @@ void	VkBackend::createTextureImage() {
 	createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM,
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _texture.image, _texture.imageMemory);
-	transitionImageLayout(_texture.image, VK_FORMAT_R8G8B8A8_UNORM,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, texture.image, texture.imageMemory);
+	transitionImageLayout(texture.image, VK_FORMAT_R8G8B8A8_UNORM,
 		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	copyBufferToImage(stagingBuffer, _texture.image,
+	copyBufferToImage(stagingBuffer, texture.image,
 		static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-	transitionImageLayout(_texture.image, VK_FORMAT_R8G8B8A8_UNORM,
+	transitionImageLayout(texture.image, VK_FORMAT_R8G8B8A8_UNORM,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	vkDestroyBuffer(_device, stagingBuffer, nullptr);
 	vkFreeMemory(_device, stagingBufferMemory, nullptr);
+	return texture;
 }
 
 VkImageView VkBackend::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
@@ -620,12 +626,12 @@ VkImageView VkBackend::createImageView(VkImage image, VkFormat format, VkImageAs
 	return imageView;
 }
 
-void	VkBackend::createTextureImageView() {
-	_texture.imageView = createImageView(_texture.image, VK_FORMAT_R8G8B8A8_UNORM,
+void	VkBackend::createTextureImageView(Texture &texture) {
+	texture.imageView = createImageView(texture.image, VK_FORMAT_R8G8B8A8_UNORM,
 		VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void	VkBackend::createTextureSampler() {
+void	VkBackend::createTextureSampler(Texture &texture) {
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -644,7 +650,7 @@ void	VkBackend::createTextureSampler() {
 	samplerInfo.minLod = 0.0f;
 	samplerInfo.maxLod = 0.0f;
 	
-	VkResult result = vkCreateSampler(_device, &samplerInfo, nullptr, &_texture.sampler);
+	VkResult result = vkCreateSampler(_device, &samplerInfo, nullptr, &texture.sampler);
 	vkCheckResult(result, "vkCreateSampler");
 }
 
@@ -684,8 +690,9 @@ void	VkBackend::createImage(uint32_t width, uint32_t height, VkFormat format,
 	vkBindImageMemory(_device, image, imageMemory, 0);
 }
 
-void	VkBackend::createVertexBuffer() {
-	VkDeviceSize bufferSize = sizeof(_model.meshes[0].vertices[0]) * _model.meshes[0].vertices.size();
+Buffer	VkBackend::createVertexBuffer(std::vector<Vertex> vertices) {
+	Buffer vertex;
+	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -694,19 +701,21 @@ void	VkBackend::createVertexBuffer() {
 
 	void* data;
 	vkMapMemory(_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, _model.meshes[0].vertices.data(), (size_t)bufferSize);
+	memcpy(data, vertices.data(), (size_t)bufferSize);
 	vkUnmapMemory(_device, stagingBufferMemory);
 
 	createBuffer(bufferSize,
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _vertexBuffer, _vertexBufferMemory);
-	copyBuffer(stagingBuffer, _vertexBuffer, bufferSize);
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertex.buffer, vertex.bufferMemory);
+	copyBuffer(stagingBuffer, vertex.buffer, bufferSize);
 	vkDestroyBuffer(_device, stagingBuffer, nullptr);
 	vkFreeMemory(_device, stagingBufferMemory, nullptr);
+	return vertex;
 }
 
-void	VkBackend::createIndexBuffer() {
-	VkDeviceSize bufferSize = sizeof(_model.meshes[0].indices[0]) * _model.meshes[0].indices.size();
+Buffer	VkBackend::createIndexBuffer(std::vector<uint32_t> indices) {
+	Buffer index;
+	VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -721,12 +730,13 @@ void	VkBackend::createIndexBuffer() {
 
 	createBuffer(bufferSize,
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _indexBuffer, _indexBufferMemory);
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, index.buffer, index.bufferMemory);
 
-	copyBuffer(stagingBuffer, _indexBuffer, bufferSize);
+	copyBuffer(stagingBuffer, index.buffer, bufferSize);
 
 	vkDestroyBuffer(_device, stagingBuffer, nullptr);
 	vkFreeMemory(_device, stagingBufferMemory, nullptr);
+	return index;
 }
 
 void	VkBackend::createUniformBuffer() {
@@ -938,6 +948,8 @@ void	VkBackend::copyBufferToImage(VkBuffer buffer, VkImage image,
 }
 
 void	VkBackend::createCommandBuffers() {
+	//size_t mesh_id = 0;
+	//for (auto &mesh : _model.meshes) {
 	_commandBuffers.resize(_swapChainFramebuffers.size());
 	VkCommandBufferAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -970,16 +982,22 @@ void	VkBackend::createCommandBuffers() {
 		renderPassInfo.pClearValues = clearValues.data();
 		vkCmdBeginRenderPass(_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		vkCmdBindPipeline(_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline);
-		VkBuffer vertexBuffers[] = { _vertexBuffer };
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindDescriptorSets(_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-			_pipelineLayout, 0, 1, &_descriptorSet, 0, nullptr);
-		vkCmdBindVertexBuffers(_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(_commandBuffers[i], _indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(_commandBuffers[i], static_cast<uint32_t>(_model.meshes[0].indices.size()), 1, 0, 0, 0);
+		size_t mesh_id = 0;
+		for (auto &mesh : _model.meshes) {
+			VkBuffer buffers[] = { vertexBuffers[mesh_id].buffer };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindDescriptorSets(_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+				_pipelineLayout, 0, 1, &_descriptorSet, 0, nullptr);
+			vkCmdBindVertexBuffers(_commandBuffers[i], 0, 1, buffers, offsets);
+			vkCmdBindIndexBuffer(_commandBuffers[i], indexBuffers[mesh_id].buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(_commandBuffers[i], static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+			mesh_id++;
+		}
 		vkCmdEndRenderPass(_commandBuffers[i]);
 		result = vkEndCommandBuffer(_commandBuffers[i]);
 		vkCheckResult(result, "vkEndCommandBuffer");
+	//}
+	//mesh_id++;
 	}
 }
 
@@ -1028,10 +1046,15 @@ void	VkBackend::cleanup() {
 	vkDestroyDescriptorSetLayout(_device, _descriptorSetLayout, nullptr);
 	vkDestroyBuffer(_device, _uniformBuffer, nullptr);
 	vkFreeMemory(_device, _uniformBufferMemory, nullptr);
-	vkDestroyBuffer(_device, _indexBuffer, nullptr);
-	vkFreeMemory(_device, _indexBufferMemory, nullptr);
-	vkDestroyBuffer(_device, _vertexBuffer, nullptr);
-	vkFreeMemory(_device, _vertexBufferMemory, nullptr);
+
+	for (auto &buffer : vertexBuffers) {
+		vkDestroyBuffer(_device, buffer.buffer, nullptr);
+		vkFreeMemory(_device, buffer.bufferMemory, nullptr);
+	}
+	for (auto &buffer : indexBuffers) {
+		vkDestroyBuffer(_device, buffer.buffer, nullptr);
+		vkFreeMemory(_device, buffer.bufferMemory, nullptr);
+	}
 
 	vkDestroySemaphore(_device, _renderFinishedSemaphore, nullptr);
 	vkDestroySemaphore(_device, _imageAvailableSemaphore, nullptr);

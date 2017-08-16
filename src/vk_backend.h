@@ -9,7 +9,7 @@
 
 struct VkVertex {
 	glm::vec3	pos;
-	glm::vec3	color;
+	glm::vec3	normal;
 	glm::vec2	texCoord;
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription = {};
@@ -29,7 +29,7 @@ struct VkVertex {
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
 		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(VkVertex, color);
+		attributeDescriptions[1].offset = offsetof(VkVertex, normal);
 
 		attributeDescriptions[2].binding = 0;
 		attributeDescriptions[2].location = 2;
@@ -46,23 +46,17 @@ struct Texture {
 	VkDeviceMemory		imageMemory;
 	VkImageView			imageView;
 	VkSampler			sampler;
-
-	Texture() {};
-	Texture(VkDevice device) : _device(device){ }
-private:
-	VkDevice _device;
 };
 
 struct DepthStencil { 
 	VkImage				image;
 	VkDeviceMemory		imageMemory;
 	VkImageView			imageView;
+};
 
-	DepthStencil() {};
-	DepthStencil(VkDevice device) : _device(device){ }
-
-private:
-	VkDevice _device;
+struct Buffer {
+	VkBuffer			buffer;
+	VkDeviceMemory		bufferMemory;
 };
 
 
@@ -77,7 +71,6 @@ public:
 	void	update();
 	void	cleanup();
 	void	OnResize();
-	void	loadModel(); //TODO: higher level abstraction
 
 private:
 
@@ -104,12 +97,12 @@ private:
 	VkSemaphore	_imageAvailableSemaphore;
 	VkSemaphore	_renderFinishedSemaphore;
 
-	VkBuffer	_vertexBuffer;
-	VkDeviceMemory	_vertexBufferMemory;
-	VkBuffer	_indexBuffer;
-	VkDeviceMemory	_indexBufferMemory;
+	std::vector<Buffer> vertexBuffers;
+	std::vector<Buffer> indexBuffers;
+	
 	VkBuffer	_uniformBuffer;
 	VkDeviceMemory	_uniformBufferMemory;
+
 	VkDescriptorPool	_descriptorPool;
 	VkDescriptorSet	_descriptorSet;
 
@@ -131,16 +124,16 @@ private:
 	void	createFramebuffers();
 	void	createCommandPool();
 	void	createDepthResources();
-	void	createTextureImage();
-	void	createTextureImageView();
-	void	createTextureSampler();
+	Texture	createTextureImage(const std::string filepath);
+	void	createTextureImageView(Texture &texture);
+	void	createTextureSampler(Texture &texture);
 	VkImageView	createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 	void	createImage(uint32_t width, uint32_t height, VkFormat format,
 				VkImageTiling tiling, VkImageUsageFlags usage,
 				VkMemoryPropertyFlags properties, VkImage& image,
 				VkDeviceMemory& imageMemory);
-	void	createVertexBuffer();
-	void	createIndexBuffer();
+	Buffer	createVertexBuffer(std::vector<Vertex> vertices);
+	Buffer	createIndexBuffer(std::vector<uint32_t> indices);
 	void	createUniformBuffer();
 	void	createDescriptorPool();
 	void	createDescriptorSet();

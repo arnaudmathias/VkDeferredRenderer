@@ -10,7 +10,6 @@ Mesh::Mesh(std::string ambient_tex, std::string diffuse_tex, std::string specula
 	ambient_texname(ambient_tex),
 	diffuse_texname(diffuse_tex),
 	specular_texname(specular_tex) {
-	
 }
 
 Mesh::~Mesh() {
@@ -49,7 +48,8 @@ void Model::load(const std::string filename) {
 		materials.push_back(tinyobj::material_t());
 	}
 	for (const auto &material : materials) {
-		meshes.push_back(Mesh(material.ambient_texname, material.diffuse_texname, material.specular_texname));
+		meshes.push_back(Mesh(basedir + material.ambient_texname,
+			basedir + material.diffuse_texname, basedir + material.specular_texname));
 	}
 	for (const auto& shape : shapes) {
 		size_t face_id = 0;
@@ -61,11 +61,19 @@ void Model::load(const std::string filename) {
 				attrib.vertices[3 * index.vertex_index + 1],
 				attrib.vertices[3 * index.vertex_index + 2]
 			};
+			if (index.normal_index != -1) {
+				vertex.normal = {
+					attrib.normals[3 * index.normal_index + 0],
+					attrib.normals[3 * index.normal_index + 1],
+					attrib.normals[3 * index.normal_index + 2]
+				};
+			} else {
+				vertex.normal = { 0.0f, 0.0f, 0.0f}; //TODO: calculate vertex normal
+			}
 			vertex.texCoord = {
 				attrib.texcoords[2 * index.texcoord_index + 0],
 				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
 			};
-			vertex.color = { 1.0f, 1.0f, 1.0f };
 			int material_id;
 			//TODO: figure out why I need this
 			if (face_id < shape.mesh.material_ids.size())
