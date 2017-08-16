@@ -63,7 +63,8 @@ void Model::load(const std::string filename) {
 	for (const auto& shape : shapes) {
 		for (size_t f = 0; f < shape.mesh.indices.size() / 3; f++) {
 			Face face;
-
+			
+			bool isNormalNeeded = true;
 			int material_id;
 			material_id = f < shape.mesh.material_ids.size() ? shape.mesh.material_ids[f] : 0;
 			if (material_id == -1)
@@ -85,14 +86,18 @@ void Model::load(const std::string filename) {
 						attrib.normals[3 * normal_index + 1],
 						attrib.normals[3 * normal_index + 2]
 					};
-				}
-				else {
-					face.vertices[j].normal = { 0.0f, 0.0f, 0.0f }; //TODO: calculate vertex normal
+					isNormalNeeded = false;
 				}
 				face.vertices[j].texCoord = {
 					attrib.texcoords[2 * texcoord_index + 0],
 					1.0f - attrib.texcoords[2 * texcoord_index + 1]
 				};
+			}
+			if (isNormalNeeded) {
+				glm::vec3 normal = glm::normalize(glm::cross(face.vertices[2].pos - face.vertices[0].pos, face.vertices[1].pos - face.vertices[0].pos));
+				face.vertices[0].normal = normal;
+				face.vertices[1].normal = normal;
+				face.vertices[2].normal = normal;
 			}
 			faceList.push_back(face);
 		}
