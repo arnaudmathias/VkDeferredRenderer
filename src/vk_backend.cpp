@@ -164,6 +164,52 @@ void VkBackend::update() {
     light.lights[i].position = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
     light.lights[i].radius = 25.0f;
   }
+  // White
+  light.lights[0].position = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+  light.lights[0].color = glm::vec3(1.5f);
+  light.lights[0].radius = 15.0f * 0.25f;
+  // Red
+  light.lights[1].position = glm::vec4(-2.0f, 0.0f, 0.0f, 0.0f);
+  light.lights[1].color = glm::vec3(1.0f, 0.0f, 0.0f);
+  light.lights[1].radius = 15.0f;
+  // Blue
+  light.lights[2].position = glm::vec4(2.0f, 1.0f, 0.0f, 0.0f);
+  light.lights[2].color = glm::vec3(0.0f, 0.0f, 2.5f);
+  light.lights[2].radius = 5.0f;
+  // Yellow
+  light.lights[3].position = glm::vec4(0.0f, 0.9f, 0.5f, 0.0f);
+  light.lights[3].color = glm::vec3(1.0f, 1.0f, 0.0f);
+  light.lights[3].radius = 2.0f;
+  // Green
+  light.lights[4].position = glm::vec4(0.0f, 0.5f, 0.0f, 0.0f);
+  light.lights[4].color = glm::vec3(0.0f, 1.0f, 0.2f);
+  light.lights[4].radius = 5.0f;
+  // Yellow
+  light.lights[5].position = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+  light.lights[5].color = glm::vec3(1.0f, 0.7f, 0.3f);
+  light.lights[5].radius = 25.0f;
+
+  light.lights[0].position.x = sin(glm::radians(360.0f * time)) * 5.0f;
+  light.lights[0].position.z = cos(glm::radians(360.0f * time)) * 5.0f;
+
+  light.lights[1].position.x =
+      -4.0f + sin(glm::radians(360.0f * time) + 45.0f) * 2.0f;
+  light.lights[1].position.z =
+      0.0f + cos(glm::radians(360.0f * time) + 45.0f) * 2.0f;
+
+  light.lights[2].position.x = 4.0f + sin(glm::radians(360.0f * time)) * 2.0f;
+  light.lights[2].position.z = 0.0f + cos(glm::radians(360.0f * time)) * 2.0f;
+
+  light.lights[4].position.x =
+      0.0f + sin(glm::radians(360.0f * time + 90.0f)) * 5.0f;
+  light.lights[4].position.z =
+      0.0f - cos(glm::radians(360.0f * time + 45.0f)) * 5.0f;
+
+  light.lights[5].position.x =
+      0.0f + sin(glm::radians(-360.0f * time + 135.0f)) * 10.0f;
+  light.lights[5].position.z =
+      0.0f - cos(glm::radians(-360.0f * time - 45.0f)) * 10.0f;
+
   vkMapMemory(_device, _lightUniformBuffer.bufferMemory, 0, sizeof(lightUbo), 0,
               &data);
   memcpy(data, &light, sizeof(lightUbo));

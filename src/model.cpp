@@ -77,11 +77,11 @@ void Model::load(const std::string filename) {
           face.vertices[j].normal = {attrib.normals[3 * normal_index + 0],
                                      attrib.normals[3 * normal_index + 1],
                                      attrib.normals[3 * normal_index + 2]};
+          face.vertices[j].normal = glm::normalize(face.vertices[j].normal);
           isNormalNeeded = false;
         }
-        face.vertices[j].texCoord = {
-            attrib.texcoords[2 * texcoord_index + 0],
-            1.0f - attrib.texcoords[2 * texcoord_index + 1]};
+        face.vertices[j].texCoord = {attrib.texcoords[2 * texcoord_index + 0],
+                                     attrib.texcoords[2 * texcoord_index + 1]};
       }
       if (isNormalNeeded) {
         glm::vec3 normal = glm::normalize(
@@ -91,6 +91,25 @@ void Model::load(const std::string filename) {
         face.vertices[1].normal = normal;
         face.vertices[2].normal = normal;
       }
+
+      glm::vec3 edge1 = face.vertices[1].pos - face.vertices[0].pos;
+      glm::vec3 edge2 = face.vertices[2].pos - face.vertices[0].pos;
+      glm::vec2 deltaUV1 =
+          face.vertices[1].texCoord - face.vertices[0].texCoord;
+      glm::vec2 deltaUV2 =
+          face.vertices[2].texCoord - face.vertices[0].texCoord;
+
+      float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+      glm::vec3 tangent;
+      tangent.x = r * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+      tangent.y = r * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+      tangent.z = r * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+      tangent = glm::normalize(tangent);
+      face.vertices[0].tangent = tangent;
+      face.vertices[1].tangent = tangent;
+      face.vertices[2].tangent = tangent;
+
       faceList.push_back(face);
     }
   }

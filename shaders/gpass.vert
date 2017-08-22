@@ -28,6 +28,7 @@ void main() {
 	fragPos.y = -fragPos.y;
 
 	fragTexCoord = inTexCoord;
+	fragTexCoord.y = 1.0f - fragTexCoord.y;
 
 	mat3 matNormal = transpose(inverse(mat3(ubo.model)));
 	fragNormal = matNormal * normalize(inNormal);
