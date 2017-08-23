@@ -2,11 +2,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-VkBackend::VkBackend(GLFWwindow *window) : _window(window) {}
+VkBackend::VkBackend() {}
 
 VkBackend::~VkBackend() {}
 
-bool VkBackend::init(Model model) {
+void VkBackend::init(GLFWwindow *window, Model model) {
+  _window = window;
   _model = model;
   createInstance();
   setupDebugCallback();
@@ -66,7 +67,6 @@ bool VkBackend::init(Model model) {
       _lightPipeline.descriptorPool, _lightPipeline.descriptorSetLayout));
   createCommandBuffers();
   createSemaphores();
-  return true;
 }
 
 void VkBackend::recreateSwapChain() {
@@ -1598,4 +1598,4 @@ void VkBackend::cleanup() {
   glfwTerminate();
 }
 
-void VkBackend::OnResize() { recreateSwapChain(); }
+void VkBackend::onResize() { recreateSwapChain(); }

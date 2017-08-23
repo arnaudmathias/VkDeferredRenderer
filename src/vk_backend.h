@@ -4,6 +4,7 @@
 #include <set>
 #include <vector>
 #include "Vk_utils.h"
+#include "graphics_backend.h"
 #include "model.h"
 #include "renderer.h"
 
@@ -97,19 +98,18 @@ struct Pipeline {
   std::vector<VkDescriptorSet> descriptorSets;
 };
 
-class VkBackend {
+class VkBackend : public GraphicsBackend {
  public:
-  VkBackend(GLFWwindow *window);
+  VkBackend();
   ~VkBackend();
 
-  bool init(Model model);
+  void init(GLFWwindow *window, Model model);
   void drawFrame();
   void update();
   void cleanup();
-  void OnResize();
+  void onResize();
 
  private:
-  GLFWwindow *_window;
   VkInstance _instance;
   VkDebugReportCallbackEXT _callback;
   VkSurfaceKHR _surface;
@@ -148,8 +148,6 @@ class VkBackend {
   std::vector<Texture> _normalTextures;
   DepthStencil _depth;
   std::vector<Attachment> _gBufferAttachments;
-
-  Model _model;
 
   void createInstance();
   void setupDebugCallback();

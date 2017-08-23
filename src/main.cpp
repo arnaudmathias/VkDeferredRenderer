@@ -8,15 +8,16 @@
 #include <glm/vec4.hpp>
 #include <iostream>
 #include <stdexcept>
+#include "graphics_backend.h"
 #include "model.h"
 #include "vk_backend.h"
 
 static void onWindowResized(GLFWwindow* window, int width, int height) {
   if (width == 0 || height == 0) return;
 
-  VkBackend* backend =
-      reinterpret_cast<VkBackend*>(glfwGetWindowUserPointer(window));
-  backend->OnResize();
+  GraphicsBackend* backend =
+      reinterpret_cast<GraphicsBackend*>(glfwGetWindowUserPointer(window));
+  backend->onResize();
 }
 
 int main() {
@@ -28,9 +29,9 @@ int main() {
 
   Model model;
   model.load("models/sponza/sponza.obj");
-  // model.load("models/sibenik/sibenik.obj");
-  VkBackend vulkanBackend(window);
-  vulkanBackend.init(model);
+
+  VkBackend vulkanBackend = VkBackend();
+  vulkanBackend.init(window, model);
   glfwSetWindowUserPointer(window, &vulkanBackend);
   glfwSetWindowSizeCallback(window, onWindowResized);
   while (!glfwWindowShouldClose(window)) {
