@@ -8,9 +8,28 @@
 #include <glm/vec4.hpp>
 #include <iostream>
 #include <stdexcept>
+#include <sstream>
+#include <iomanip>
 #include "graphics_backend.h"
 #include "model.h"
 #include "vk_backend.h"
+
+void updateFpsCounter(GLFWwindow *window) {
+  static double previous_seconds = glfwGetTime();
+  static int frame_count;
+  double current_seconds = glfwGetTime();
+  double elapsed_seconds = current_seconds - previous_seconds;
+  if (elapsed_seconds > 0.25) {
+    previous_seconds = current_seconds;
+    double fps = (double)frame_count / elapsed_seconds;
+    std::ostringstream title;
+    title << "Vulkan Deferred @ " << std::fixed << std::setprecision(1) << fps << " fps";
+    glfwSetWindowTitle(window, title.str().c_str());
+    frame_count = 0;
+  }
+  frame_count++;
+}
+
 
 static void onWindowResized(GLFWwindow* window, int width, int height) {
   if (width == 0 || height == 0) return;
@@ -35,6 +54,7 @@ int main() {
   glfwSetWindowUserPointer(window, &vulkanBackend);
   glfwSetWindowSizeCallback(window, onWindowResized);
   while (!glfwWindowShouldClose(window)) {
+    updateFpsCounter(window);
     glfwPollEvents();
     vulkanBackend.update();
     vulkanBackend.drawFrame();
