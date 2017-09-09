@@ -10,6 +10,10 @@ MESSAGE( STATUS "Vulkan_INCLUDE_DIRS:         " ${Vulkan_INCLUDE_DIRS} )
 MESSAGE( STATUS "Vulkan_LIBRARIES:         " ${Vulkan_LIBRARIES} )
 include_directories(${Vulkan_INCLUDE_DIRS})
 
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
 add_subdirectory(third-party/glfw)
 include_directories(third-party/glfw/include)
 include_directories(third-party/glm)

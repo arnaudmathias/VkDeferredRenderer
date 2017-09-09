@@ -9,19 +9,13 @@
 #include <iostream>
 #include <set>
 #include <vector>
+#include <string>
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = true;
 #endif
-
-/*
-struct UniformBufferObject {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
-}; */
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_LUNARG_standard_validation"};
@@ -43,7 +37,6 @@ struct SwapChainSupportDetails {
 };
 
 void vkCheckResult(VkResult result, const char* apiCall);
-std::vector<char> readShader(const std::string& filename);
 VkShaderModule createShaderModule(VkDevice device,
                                   const std::vector<char>& code);
 bool checkValidationLayerSupport();

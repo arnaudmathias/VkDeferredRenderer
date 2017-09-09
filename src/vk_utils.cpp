@@ -42,21 +42,6 @@ void vkCheckResult(VkResult result, const char* apiCall) {
   }
 }
 
-std::vector<char> readShader(const std::string& filename) {
-  std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-  if (!file.is_open()) {
-    throw std::runtime_error("failed to open file!");
-  }
-  size_t fileSize = (size_t)file.tellg();
-  std::vector<char> buffer(fileSize);
-  file.seekg(0);
-  file.read(buffer.data(), fileSize);
-  file.close();
-
-  return buffer;
-}
-
 VkShaderModule createShaderModule(VkDevice device,
                                   const std::vector<char>& code) {
   VkShaderModuleCreateInfo createInfo = {};
@@ -81,7 +66,7 @@ bool checkValidationLayerSupport() {
     bool layerFound = false;
 
     for (const auto& layerProperties : availableLayers) {
-      if (strcmp(layerName, layerProperties.layerName) == 0) {
+      if (std::string(layerName) == std::string(layerProperties.layerName)) {
         layerFound = true;
         break;
       }

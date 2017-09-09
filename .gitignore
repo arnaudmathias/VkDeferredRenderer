@@ -52,3 +52,6 @@ bld/
 .vs/
 *.vcxproj*
 *.sln
+
+Makefile
+vkrenderer
